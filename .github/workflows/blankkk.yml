@@ -1,0 +1,32 @@
+name: Free Kali Linux RDP
+on: workflow_dispatch
+
+jobs:
+  launch-kali:
+    runs-on: ubuntu-latest # কালির জন্য লিনাক্স রানার ব্যবহার করা হয়েছে
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install ngrok and Run Kali Docker GUI
+        run: |
+          # ngrok ডাউনলোড ও ইনস্টল করা
+          curl -s https://amazonaws.com | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+          echo "deb https://amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt-get update && sudo apt-get install -y ngrok
+
+          # টোকেন কনফিগার করা
+          ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
+
+          # ব্যাকগ্রাউন্ডে গ্রাফিক্যাল কালি লিনাক্স ডেস্কটপ বুট করা
+          # এটি পোর্ট ৩৩৮৯ (RDP) সাপোর্ট করে এবং ইউজার/পাসওয়ার্ড uk এবং Uk@2026 সেট করে
+          sudo docker run -d -p 3389:3389 --name kali-gui \
+            -e USER=uk -e PASSWORD=Uk@2026 \
+            -e ROOT=true -e RESOLUTION=1920x1080 \
+            danielguerra/kali-xrdp
+
+          echo "Waiting for Kali to boot up..."
+          sleep 10
+
+          # RDP পোর্ট ৩৩8৯ এর সাথে ngrok টানেল অন করা
+          ngrok tcp 3389
