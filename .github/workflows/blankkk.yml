@@ -5,18 +5,13 @@ jobs:
   launch-kali:
     runs-on: ubuntu-latest
     steps:
-      - name: Force Clean Broken Repositories
-        run: |
-          # এরর দেওয়া সমস্ত পুরনো ব্রোকেন সোর্স ফাইল লিনাক্স সিস্টেম থেকে সম্পূর্ণ ডিলিট করা
-          sudo rm -f /etc/apt/sources.list.d/*
-          sudo apt-get clean
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Install Secure ngrok via Static Binary
+      - name: Install ngrok via Snap Store
         run: |
-          # apt-get বাদ দিয়ে সরাসরি অফিশিয়াল লিনাক্স বাইনারি দিয়ে ১ সেকেন্ডে ngrok নামানো
-          wget -q https://equinox.io
-          tar -xf ngrok-v3-stable-linux-amd64.tgz
-          sudo mv ngrok /usr/local/bin/
+          # কোনো ডাউনলোড লিঙ্ক বা জিপ ফাইলের ঝামেলা ছাড়া সরাসরি অফিশিয়াল স্ন্যাপ দিয়ে ngrok ইনস্টল করা
+          sudo snap install ngrok
 
       - name: Configure ngrok Token
         run: |
