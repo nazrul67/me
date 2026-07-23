@@ -12,18 +12,35 @@ jobs:
         run: |
           sudo snap install ngrok
 
-      - name: Boot Pre-Configured Kali Linux GUI (No Black Screen)
+      - name: Install Desktop Environment and RDP Server
         run: |
-          # প্রি-বিল্ট xrdp যুক্ত লিনাক্স ইমেজ রান করা
-          sudo docker run -d --name kali-desktop --privileged -p 3389:3389 \
-            -e USER=uk -e PASSWORD=Uk@2026 \
-            -e RESOLUTION=1920x1080 \
-            scottyhardy/kali-linux-xrdp:latest
+          sudo apt-get update
+          # লাইটওয়েট এবং স্টেবল LXDE ডেস্কটপ ও xrdp ইনস্টল করা (ব্ল্যাক স্ক্রিন এড়াতে সেরা)
+          sudo apt-get install -y lxde xrdp dbus-x11
           
-          echo "Waiting 20 seconds for window manager to load..."
-          sleep 20
+          # ইউজারনেম 'uk' এবং পাসওয়ার্ড 'Uk@2026' সেটআপ করা
+          sudo useradd -m -s /bin/bash uk
+          echo 'uk:Uk@2026' | sudo chpasswd
+          sudo usermod -aG sudo uk
+          
+          # সেশন ফাইল কনফিগারেশন (এটি ব্ল্যাক স্ক্রিন হওয়া পুরোপুরি বন্ধ করবে)
+          echo "startlxde" > /home/uk/.xsession
+          sudo chown uk:uk /home/uk/.xsession
+          
+          # RDP সার্ভিস স্টার্ট করা
+          sudo service xrdp start
+
+      - name: Convert Linux to Kali Linux (Add Kali Tools)
+        run: |
+          # কালির অফিশিয়াল রিপোজিটরি সিস্টেমে যুক্ত করা
+          sudo apt-key adv --keyserver ://ubuntu.com --recv-keys ED444FF07D8D0BF6
+          echo "deb http://kali.org kali-rolling main contrib non-free non-free-firmware" | sudo tee /etc/apt/sources.list.d/kali.list
+          sudo apt-get update
+          
+          # কালির মূল টার্মিনাল এবং প্রয়োজনীয় টুলস ব্যাকগ্রাউন্ডে ইনস্টল করা
+          sudo apt-get install -y kali-menu
 
       - name: Start Safe RDP Tunnel (No Config File)
         run: |
-          # ইনলাইন টোকেন দিয়ে RDP টানেল চালু করা
+          # ইনলাইন টোকেন দিয়ে RDP টানেল অন করা
           sudo ngrok tcp 3389 --authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
