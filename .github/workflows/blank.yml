@@ -18,13 +18,9 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-      - name: Setup Custom RDP Password
-        run: |
-          # পাওয়ারশেল বাদ দিয়ে অফিশিয়াল উইন্ডোজ কমান্ড দিয়ে পাসওয়ার্ড সেট করা
-          net user runneradmin MySpeedWindows2026!
-
       - name: Start Safe RDP Tunnel
         run: |
+          # কোনো পাসওয়ার্ড চেঞ্জ ছাড়াই সরাসরি টানেল অন করা
           Start-Process ngrok -ArgumentList "tcp 3389"
           Write-Host "RDP Server Started Successfully!"
           Start-Sleep -Seconds 21600 # সেশনটি ৬ ঘণ্টা সচল থাকবে
