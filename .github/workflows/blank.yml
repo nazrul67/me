@@ -17,10 +17,18 @@ jobs:
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+
+      - name: Create Custom RDP User Account
+        shell: cmd
+        run: |
+          # একদম নতুন একটি এডমিন ইউজার তৈরি করা যাতে লগইন এরর না আসে
+          net user RDPUser MySpeedWindows2026! /add
+          net localgroup Administrators RDPUser /add
+          net localgroup "Remote Desktop Users" RDPUser /add
 
       - name: Start Safe RDP Tunnel
         run: |
-          # কোনো পাসওয়ার্ড চেঞ্জ ছাড়াই সরাসরি টানেল অন করা
           Start-Process ngrok -ArgumentList "tcp 3389"
           Write-Host "RDP Server Started Successfully!"
           Start-Sleep -Seconds 21600 # সেশনটি ৬ ঘণ্টা সচল থাকবে
