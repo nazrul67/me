@@ -5,11 +5,14 @@ jobs:
   launch-windows:
     runs-on: windows-latest
     steps:
-      - name: Download and Configure ngrok
+      - name: Install ngrok via Chocolatey
         run: |
-          Invoke-WebRequest -Uri https://equinox.io -OutFile ngrok.zip
-          Expand-Archive .\ngrok.zip -DestinationPath .
-          .\ngrok.exe config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
+          # কোনো এক্সটার্নাল লিঙ্ক ছাড়া সরাসরি প্যাকেজ ম্যানেজার দিয়ে ngrok নামানো
+          choco install ngrok -y
+
+      - name: Configure ngrok Token
+        run: |
+          ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
 
       - name: Enable Remote Desktop (RDP) Ports
         run: |
@@ -25,6 +28,7 @@ jobs:
 
       - name: Start Safe RDP Tunnel
         run: |
-          Start-Process .\ngrok.exe -ArgumentList "tcp 3389"
+          # ব্যাকগ্রাউন্ডে RDP পোর্ট টানেল অন করা
+          Start-Process ngrok -ArgumentList "tcp 3389"
           Write-Host "RDP Server Started Successfully!"
           Start-Sleep -Seconds 21600 # সেশনটি ৬ ঘণ্টা সচল থাকবে
