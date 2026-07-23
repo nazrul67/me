@@ -12,11 +12,6 @@ jobs:
         run: |
           sudo snap install ngrok
 
-      - name: Configure ngrok Token
-        run: |
-          # পারমিশন এরর দূর করতে 'sudo' যুক্ত করা হয়েছে যেন গ্লোবাল ফোল্ডারে টোকেন সেভ হতে পারে
-          sudo ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
-
       - name: Boot Kali Linux Graphical OS
         run: |
           # ব্যাকগ্রাউন্ডে রিয়েল কালির ওএস চালু করা (Username: uk, Password: Uk@2026)
@@ -28,7 +23,7 @@ jobs:
           echo "Waiting for Kali OS to load setup..."
           sleep 15
 
-      - name: Start Safe RDP Tunnel
+      - name: Start Safe RDP Tunnel (No Config File)
         run: |
-          # রুট পারমিশন সহ ngrok টানেল অন করা
-          sudo ngrok tcp 3389
+          # কোনো কনফিগারেশন ফাইল বা সেভ করার ঝামেলা ছাড়া সরাসরি ইনলাইন টোকেন দিয়ে টানেল অন করা
+          sudo ngrok tcp 3389 --authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
