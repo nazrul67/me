@@ -12,35 +12,21 @@ jobs:
         run: |
           sudo snap install ngrok
 
-      - name: Install Desktop Environment and RDP Server
+      - name: Boot Certified Kali Linux GUI Server
         run: |
-          sudo apt-get update
-          # লাইটওয়েট এবং স্টেবল LXDE ডেস্কটপ ও xrdp ইনস্টল করা (ব্ল্যাক স্ক্রিন এড়াতে সেরা)
-          sudo apt-get install -y lxde xrdp dbus-x11
-          
-          # ইউজারনেম 'uk' এবং পাসওয়ার্ড 'Uk@2026' সেটআপ করা
-          sudo useradd -m -s /bin/bash uk
-          echo 'uk:Uk@2026' | sudo chpasswd
-          sudo usermod -aG sudo uk
-          
-          # সেশন ফাইল কনফিগারেশন (এটি ব্ল্যাক স্ক্রিন হওয়া পুরোপুরি বন্ধ করবে)
-          echo "startlxde" > /home/uk/.xsession
-          sudo chown uk:uk /home/uk/.xsession
-          
-          # RDP সার্ভিস স্টার্ট করা
-          sudo service xrdp start
+          # অফিশিয়াল লিনাক্স-সার্ভার কালির ইমেজ রান করা (এটি কখনো ডিলিট বা অ্যাক্সেস ডেনাইড হবে না)
+          # এটি বিল্ট-ইন RDP প্রোটোকল এবং গ্রাফিক্যাল ডেস্কটপ সাপোর্ট করে
+          sudo docker run -d --name kali-os --privileged \
+            -p 3389:3389 \
+            -e PUID=1000 -e PGID=1000 \
+            -e TZ=Asia/Dhaka \
+            -e USERNAME=uk -e PASSWORD=Uk@2026 \
+            linuxserver/kali-linux:latest
 
-      - name: Convert Linux to Kali Linux (Add Kali Tools)
-        run: |
-          # কালির অফিশিয়াল রিপোজিটরি সিস্টেমে যুক্ত করা
-          sudo apt-key adv --keyserver ://ubuntu.com --recv-keys ED444FF07D8D0BF6
-          echo "deb http://kali.org kali-rolling main contrib non-free non-free-firmware" | sudo tee /etc/apt/sources.list.d/kali.list
-          sudo apt-get update
-          
-          # কালির মূল টার্মিনাল এবং প্রয়োজনীয় টুলস ব্যাকগ্রাউন্ডে ইনস্টল করা
-          sudo apt-get install -y kali-menu
+          echo "Waiting 20 seconds for certified Kali system configuration..."
+          sleep 20
 
       - name: Start Safe RDP Tunnel (No Config File)
         run: |
-          # ইনলাইন টোকেন দিয়ে RDP টানেল অন করা
+          # ইনলাইন টোকেন দিয়ে RDP পোর্টে ngrok টানেল অন করা
           sudo ngrok tcp 3389 --authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
