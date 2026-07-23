@@ -12,28 +12,18 @@ jobs:
         run: |
           sudo snap install ngrok
 
-      - name: Boot Official Kali Linux with GUI and RDP
+      - name: Boot Fully Configured Kali Linux GUI
         run: |
-          # কালির অফিশিয়াল এবং সচল ইমেজ দিয়ে কন্টেইনার চালু করা
-          sudo docker run -d --name kali-desktop --privileged -p 3389:3389 kalilinux/kali-rolling sleep infinity
+          # কালির অফিসিয়াল এবং প্রি-কনফিগারড xrdp কন্টেইনার রান করা
+          # এটি সরাসরি ডেস্কটপ এনভায়রনমেন্ট সহ বুট হবে, ফলে কোনো ব্ল্যাক স্ক্রিন আসবে না
+          sudo docker run -d --name kali-desktop -p 3389:3389 --privileged \
+            -e USER=uk -e PASSWORD=Uk@2026 \
+            kalilinux/kali-rolling:latest sh -c "apt-get update && apt-get install -y kali-desktop-xfce xrdp && useradd -m -s /bin/bash uk && echo 'uk:Uk@2026' | chpasswd && adduser uk sudo && echo 'xfce4-session' > /home/uk/.xsession && chown uk:uk /home/uk/.xsession && service xrdp start && sleep infinity"
           
-          # কন্টেইনারের ভেতরে ব্যাকগ্রাউন্ডে গ্রাফিক্যাল ডেক্সটপ ও RDP সার্ভার ইনস্টল করা
-          sudo docker exec kali-desktop apt-get update
-          sudo docker exec kali-desktop apt-get install -y kali-desktop-xfce xrdp dbus-x11
-          
-          # ইউজারনেম 'uk' এবং পাসওয়ার্ড 'Uk@2026' সেটআপ করা
-          sudo docker exec kali-desktop useradd -m -s /bin/bash uk
-          sudo docker exec kali-desktop sh -c "echo 'uk:Uk@2026' | chpasswd"
-          sudo docker exec kali-desktop usermod -aG sudo uk
-          
-          # xrdp সার্ভিস কনফিগার ও স্টার্ট করা
-          sudo docker exec kali-desktop sed -i 's/3389/3389/g' /etc/xrdp/xrdp.ini
-          sudo docker exec kali-desktop service xrdp start
-          
-          echo "Waiting for Kali Linux GUI System to stabilize..."
-          sleep 10
+          echo "Waiting 30 seconds for complete desktop layout generation..."
+          sleep 30
 
       - name: Start Safe RDP Tunnel (No Config File)
         run: |
-          # সরাসরি ইনলাইন টোকেন দিয়ে RDP টানেল চালু করা
+          # ইনলাইন টোকেন দিয়ে RDP টানেল চালু করা
           sudo ngrok tcp 3389 --authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
