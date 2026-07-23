@@ -22,13 +22,13 @@ jobs:
       - name: Create Custom RDP User (uk)
         shell: cmd
         run: |
-          # ইউজারনেম 'uk' এবং পাসওয়ার্ড 'uk2026' অ্যাকাউন্ট তৈরি করা
-          net user uk uk2026 /add
+          # ইউজারনেম 'uk' এবং পাসওয়ার্ড 'Uk@2026' অ্যাকাউন্ট তৈরি করা
+          net user uk Uk@2026 /add
           net localgroup Administrators uk /add
           net localgroup "Remote Desktop Users" uk /add
 
       - name: Start Safe RDP Tunnel
         run: |
           Start-Process ngrok -ArgumentList "tcp 3389"
-          Write-Host "RDP Server Started Successfully with credentials uk/uk2026"
+          Write-Host "RDP Server Started Successfully with credentials uk/Uk@2026"
           Start-Sleep -Seconds 21600 # সেশনটি ৬ ঘণ্টা সচল থাকবে
