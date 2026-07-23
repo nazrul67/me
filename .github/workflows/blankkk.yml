@@ -12,16 +12,16 @@ jobs:
         run: |
           sudo snap install ngrok
 
-      - name: Boot Fully Configured Kali Linux GUI
+      - name: Boot Pre-Configured Kali Linux GUI (No Black Screen)
         run: |
-          # কালির অফিসিয়াল এবং প্রি-কনফিগারড xrdp কন্টেইনার রান করা
-          # এটি সরাসরি ডেস্কটপ এনভায়রনমেন্ট সহ বুট হবে, ফলে কোনো ব্ল্যাক স্ক্রিন আসবে না
-          sudo docker run -d --name kali-desktop -p 3389:3389 --privileged \
+          # প্রি-বিল্ট xrdp যুক্ত লিনাক্স ইমেজ রান করা
+          sudo docker run -d --name kali-desktop --privileged -p 3389:3389 \
             -e USER=uk -e PASSWORD=Uk@2026 \
-            kalilinux/kali-rolling:latest sh -c "apt-get update && apt-get install -y kali-desktop-xfce xrdp && useradd -m -s /bin/bash uk && echo 'uk:Uk@2026' | chpasswd && adduser uk sudo && echo 'xfce4-session' > /home/uk/.xsession && chown uk:uk /home/uk/.xsession && service xrdp start && sleep infinity"
+            -e RESOLUTION=1920x1080 \
+            scottyhardy/kali-linux-xrdp:latest
           
-          echo "Waiting 30 seconds for complete desktop layout generation..."
-          sleep 30
+          echo "Waiting 20 seconds for window manager to load..."
+          sleep 20
 
       - name: Start Safe RDP Tunnel (No Config File)
         run: |
