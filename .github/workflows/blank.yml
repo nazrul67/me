@@ -7,7 +7,6 @@ jobs:
     steps:
       - name: Install ngrok via Chocolatey
         run: |
-          # কোনো এক্সটার্নাল লিঙ্ক ছাড়া সরাসরি প্যাকেজ ম্যানেজার দিয়ে ngrok নামানো
           choco install ngrok -y
 
       - name: Configure ngrok Token
@@ -18,17 +17,14 @@ jobs:
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
 
       - name: Setup Custom RDP Password
         run: |
-          $Password = ConvertTo-SecureString "MySpeedWindows2026!" -AsPlainText -Force
-          $User = Get-LocalUser -Name "runneradmin"
-          Set-LocalUser -User $User -Password $Password
+          # পাওয়ারশেল বাদ দিয়ে অফিশিয়াল উইন্ডোজ কমান্ড দিয়ে পাসওয়ার্ড সেট করা
+          net user runneradmin MySpeedWindows2026!
 
       - name: Start Safe RDP Tunnel
         run: |
-          # ব্যাকগ্রাউন্ডে RDP পোর্ট টানেল অন করা
           Start-Process ngrok -ArgumentList "tcp 3389"
           Write-Host "RDP Server Started Successfully!"
           Start-Sleep -Seconds 21600 # সেশনটি ৬ ঘণ্টা সচল থাকবে
