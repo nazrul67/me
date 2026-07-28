@@ -12,8 +12,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils nodejs npm
-          # ভার্চুয়াল ডিসপ্লে ইন্টারফেস (Xvfb, Openbox এবং x11vnc) ইনস্টল করা
-          sudo apt-get install -y xvfb openbox x11vnc
+          # উবুন্টু অফিশিয়াল রিপোজিটরি থেকে সরাসরি নো-ভিএনসি এবং এক্স-ইলেভেন-ভিএনসি ইনস্টল করা
+          sudo apt-get install -y xvfb openbox x11vnc novnc websockify
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
 
@@ -34,27 +34,25 @@ jobs:
           echo "y" | sdkmanager --install "system-images;android-33;google_apis;x86_64"
           echo "no" | avdmanager create avd -n AndroidCloud -k "system-images;android-33;google_apis;x86_64" --force
           
-          # ভার্চুয়াল ডিসপ্লে স্ক্রিন চালু করা
+          # ভার্চুয়াল ডিসপ্লে স্ক্রিন ব্যাকগ্রাউন্ডে চালু করা
           Xvfb :1 -screen 0 1080x1920x24 > /dev/null 2>&1 &
           export DISPLAY=:1
           sleep 3
           
-          # অ্যান্ড্রয়েড এমুলেটরটি ভিজুয়াল মোডে চালু করা
+          # অ্যান্ড্রয়েড এমুলেটরটি ভিজুয়াল মোডে রান করা
           $ANDROID_HOME/emulator/emulator -avd AndroidCloud -no-audio -no-boot-anim -accel on -gpu swiftshader_indirect > /dev/null 2>&1 &
           echo "Android Emulator is booting in background display..."
           sleep 10
 
-      - name: Setup Web Display Server (noVNC for Mobile Touch)
+      - name: Setup Web Display Server (noVNC Setup)
         run: |
           export DISPLAY=:1
-          # ব্যাকগ্রাউন্ডে VNC সার্ভার চালু করা (পোর্ট ৫৯০০)
+          # VNC সার্ভার চালু করা (পোর্ট ৫৯০০)
           x11vnc -display :1 -forever -shared -bg -nopw -rfbport 5900 > /dev/null 2>&1 &
           sleep 5
           
-          # নো-ভিএনসি (noVNC) ডাউনলোড এবং কনফিগার করা যা ব্রাউজারে টাচ সাপোর্ট দেয়
-          git clone https://github.com /tmp/novnc
-          # নোভিএনসি সার্ভারটি পোর্ট ৬০৮০ তে ব্যাকগ্রাউন্ডে চালু করা
-          /tmp/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 6080 > /dev/null 2>&1 &
+          # অফিশিয়াল নো-ভিএনসি প্রক্সি সার্ভারটি পোর্ট ৬০৮০ তে ব্যাকগ্রাউন্ডে রান করা
+          websockify --web /usr/share/novnc/ 6080 localhost:5900 > /dev/null 2>&1 &
           sleep 5
 
       - name: Start Safe HTTP Tunnel for Mobile Chrome
