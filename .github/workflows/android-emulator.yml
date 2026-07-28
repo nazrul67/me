@@ -18,11 +18,13 @@ jobs:
       - name: Install Android SDK and Tools
         uses: android-actions/setup-android@v3
 
-      - name: Install ngrok (Direct Stable Binary)
+      - name: Install ngrok (Official Package Setup)
         run: |
-          wget https://equinox.io
-          sudo tar -xvzf ./ngrok-v3-stable-linux-amd64.tgz -C /usr/local/bin
-          rm ngrok-v3-stable-linux-amd64.tgz
+          # অফিশিয়াল পদ্ধতিতে এনগ্রক প্যাকেজ রিপোজিটরি সেটআপ ও ইনস্টল
+          curl -s https://amazonaws.com | sudo tee /etc/apt/keyrings/ngrok.asc >/dev/null
+          echo "deb [signed-by=/etc/apt/keyrings/ngrok.asc] https://amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt-get update && sudo apt-get install ngrok -y
+          echo "ngrok installed successfully!"
 
       - name: Configure ngrok Token
         run: |
@@ -37,11 +39,10 @@ jobs:
 
       - name: Setup Web-scrcpy Server (For Mobile Browser Touch)
         run: |
-          # ব্রাউজার ইন্টারফেসের জন্য ws-scrcpy ইনস্টল ও চালু করা
+          # ব্রাউজার ইন্টারফেসের জন্য ws-scrcpy ইনস্টল ও ব্যাকগ্রাউন্ডে চালু করা
           sudo npm install -g ws-scrcpy --unsafe-perm=true --allow-root
-          # ব্যাকগ্রাউন্ডে সার্ভিস রান করা (পোর্ট ৮০০০ এ)
           ws-scrcpy > /dev/null 2>&1 &
-          sleep 10
+          sleep 15
 
       - name: Start Safe HTTP Tunnel for Mobile
         run: |
@@ -53,5 +54,5 @@ jobs:
           echo "Open your Ngrok Dashboard, copy the HTTP URL and open it in your Mobile Chrome Browser."
           echo "=========================================================="
           
-          # সেশনটি ৬ ঘণ্টা সচল থাকবে
+          # সেশনটি ৬ ঘণ্টা সচল রাখবে
           sleep 21600 
