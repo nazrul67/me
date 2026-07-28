@@ -20,9 +20,11 @@ jobs:
 
       - name: Install ngrok
         run: |
-          curl -s https://amazonaws.com | sudo apt-key add -
-          echo "deb https://amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt-get update && sudo apt-get install ngrok -y
+          # নতুন এবং সিকিউর পদ্ধতিতে ngrok সাইনিং কি এবং রিপোজিটরি যোগ করা
+          curl -s https://amazonaws.com | gpg --dearmor | sudo tee /usr/share/keyrings/ngrok.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/ngrok.gpg] https://amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt-get update
+          sudo apt-get install ngrok -y
 
       - name: Configure ngrok Token
         run: |
@@ -48,5 +50,5 @@ jobs:
           echo "Please check your Ngrok Dashboard to get the ADB IP and Port."
           echo "=========================================================="
           
-          # সেশনটি ৬ ঘণ্টা সচল থাকবে
+          # সেশনটি ৬ ঘণ্টা সচল রাখবে
           sleep 21600 
