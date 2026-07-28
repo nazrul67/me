@@ -1,0 +1,52 @@
+name: Free Android Cloud Emulator
+on: workflow_dispatch
+
+jobs:
+  launch-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Enable Hardware Acceleration (KVM)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+          sudo adduser $USER kvm
+          sudo chown $USER /dev/kvm
+
+      - name: Install Android SDK and Tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install ngrok
+        run: |
+          curl -s https://amazonaws.com | sudo apt-key add -
+          echo "deb https://amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt-get update && sudo apt-get install ngrok -y
+
+      - name: Configure ngrok Token
+        run: |
+          ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
+
+      - name: Create and Start Android Emulator
+        run: |
+          # অ্যান্ড্রয়েড সিস্টেম ইমেজ ডাউনলোড ও সেটআপ (Android 13)
+          echo "y" | sdkmanager --install "system-images;android-33;google_apis;x86_64"
+          echo "no" | avdmanager create avd -n AndroidCloud -k "system-images;android-33;google_apis;x86_64" --force
+          
+          # এমুলেটর ব্যাকগ্রাউন্ডে চালু করা (ডিসপ্লে ছাড়া)
+          $ANDROID_HOME/emulator/emulator -avd AndroidCloud -no-window -no-audio -no-boot-anim -accel on -gpu off > /dev/null 2>&1 &
+          echo "Android Emulator is booting up..."
+
+      - name: Start Safe ADB Tunnel
+        run: |
+          # ADB পোর্ট ৫৫৫৫ টানেল করা (এশিয়া প্যাসিফিক রিজিয়ন)
+          ngrok tcp --region ap 5555 > /dev/null 2>&1 &
+          
+          echo "=========================================================="
+          echo "Android Cloud Server Started Successfully!"
+          echo "Please check your Ngrok Dashboard to get the ADB IP and Port."
+          echo "=========================================================="
+          
+          # সেশনটি ৬ ঘণ্টা সচল থাকবে
+          sleep 21600 
