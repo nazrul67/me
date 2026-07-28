@@ -18,13 +18,15 @@ jobs:
       - name: Install Android SDK and Tools
         uses: android-actions/setup-android@v3
 
-      - name: Install ngrok (Official Package Setup)
+      - name: Install ngrok (Official Direct Binary Setup)
         run: |
-          # অফিশিয়াল পদ্ধতিতে এনগ্রক প্যাকেজ রিপোজিটরি সেটআপ ও ইনস্টল
-          curl -s https://amazonaws.com | sudo tee /etc/apt/keyrings/ngrok.asc >/dev/null
-          echo "deb [signed-by=/etc/apt/keyrings/ngrok.asc] https://amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-          sudo apt-get update && sudo apt-get install ngrok -y
-          echo "ngrok installed successfully!"
+          # অফিশিয়াল আর্টফ্যাক্ট লিঙ্ক থেকে সরাসরি লিনাক্স বাইনারি নামানো
+          curl -s https://equinox.io --output ngrok.tgz
+          sudo tar -xvzf ngrok.tgz -C /usr/local/bin
+          rm ngrok.tgz
+          
+          # কমান্ডটি ঠিকমতো কাজ করছে কি না তা যাচাই করা
+          ngrok --version
 
       - name: Configure ngrok Token
         run: |
