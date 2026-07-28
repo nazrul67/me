@@ -12,7 +12,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils nodejs npm
-          # ভার্চুয়াল ফ্রেমবাফার এবং নো-ভিএনসি প্যাকেজ ইনস্টল করা
+          # ভার্চুয়াল ডিসপ্লে বাফার এবং নো-ভিএনসি প্রক্সি ইনস্টল করা
           sudo apt-get install -y xvfb openbox x11vnc novnc websockify
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
@@ -29,31 +29,42 @@ jobs:
         run: |
           ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
 
-      - name: Create and Start Android Emulator (Fixed Black Screen)
+      - name: Create and Start Android Emulator (Wait For System Ready)
         run: |
           echo "y" | sdkmanager --install "system-images;android-33;google_apis;x86_64"
           echo "no" | avdmanager create avd -n AndroidCloud -k "system-images;android-33;google_apis;x86_64" --force
           
-          # ভার্চুয়াল ডিসপ্লে পোর্ট :১ চালু করা (মোবাইল রেজোলিউশন ১০৮০x১৯২০)
+          # ভার্চুয়াল ডিসপ্লে স্ক্রিন চালু করা
           Xvfb :1 -screen 0 1080x1920x24 > /dev/null 2>&1 &
           export DISPLAY=:1
-          sleep 5
+          sleep 3
           
-          # ব্ল্যাক স্ক্রিন ফিক্স করার জন্য সফটওয়্যার জিপিইউ এবং সুইফটশেডার রেন্ডারিং ফোর্স করা
-          $ANDROID_HOME/emulator/emulator -avd AndroidCloud -no-audio -no-snapshot -no-window -gpu swiftshader_indirect -camera-back none -camera-front none > /dev/null 2>&1 &
-          echo "Android Emulator is booting safely with software graphics..."
+          # সফটওয়্যার রেন্ডারিং ও নো-উইন্ডো পলিসি ব্যবহার করে এমুলেটর চালু
+          $ANDROID_HOME/emulator/emulator -avd AndroidCloud -no-audio -no-snapshot-save -no-window -gpu swiftshader_indirect -camera-back none -camera-front none > /dev/null 2>&1 &
+          echo "Android Emulator is booting in background..."
           
-          # অ্যান্ড্রয়েডকে সম্পূর্ণ বুট বা চালু হওয়ার জন্য একটু সময় দেওয়া
-          sleep 30
+          # অ্যান্ড্রয়েড সিস্টেমটি সম্পূর্ণ রেডি হওয়া পর্যন্ত স্ক্রিপ্টটি লুপে অপেক্ষা করবে (ব্ল্যাক স্ক্রিন এড়াতে)
+          echo "Waiting for Android to complete booting (It may take 2-3 minutes)..."
+          $ANDROID_HOME/platform-tools/adb wait-for-device
+          
+          # হোম স্ক্রিন (Launcher) লোড হওয়া পর্যন্ত ওয়েট লুপ
+          until [[ "$($ANDROID_HOME/platform-tools/adb shell getprop sys.boot_completed 2>/dev/null)" == "1" ]]; do
+            echo "Still booting..."
+            sleep 10
+          done
+          
+          # স্ক্রিন যেন লক না হয়ে যায় তাই ডিসপ্লে লক অক্ষম (Disable) করা
+          $ANDROID_HOME/platform-tools/adb shell wm dismiss-keyguard
+          echo "Android Boot Completed Successfully!"
 
       - name: Setup Web Display Server (noVNC Setup)
         run: |
           export DISPLAY=:1
-          # ডিসপ্লে ১ ক্যাচ করার জন্য VNC সার্ভার চালু করা (পোর্ট ৫৯০০)
-          x11vnc -display :1 -forever -shared -bg -nopw -rfbport 5900 > /dev/null 2>&1 &
+          # ডিসপ্লে বাফার রিফ্রেশ ঠিক রাখতে VNC সেশন চালু করা (পোর্ট ৫৯০০)
+          x11vnc -display :1 -forever -shared -bg -nopw -rfbport 5900 -noxdamage > /dev/null 2>&1 &
           sleep 5
           
-          # ব্রাউজার স্ট্রিমিং এর জন্য প্রক্সি চালু করা (পোর্ট ৬০৮০)
+          # ব্রাউজার স্ট্রিমিং ও টাচ ইন্টারফেস অ্যাক্টিভেট করা (পোর্ট ৬০৮০)
           websockify --web /usr/share/novnc/ 6080 localhost:5900 > /dev/null 2>&1 &
           sleep 5
 
