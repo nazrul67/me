@@ -1,4 +1,4 @@
-name: Free Android Cloud Emulator
+name: Mobile Touch Android Cloud (Web)
 on: workflow_dispatch
 
 jobs:
@@ -11,7 +11,7 @@ jobs:
       - name: Enable Hardware Acceleration (KVM)
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+          sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils nodejs npm
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
 
@@ -20,11 +20,9 @@ jobs:
 
       - name: Install ngrok (Direct Stable Binary)
         run: |
-          # কোনো রিপোজিটরির ঝামেলা ছাড়া সরাসরি বাইনারি ডাউনলোড করে ইনস্টল করা
-          wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
+          wget https://equinox.io
           sudo tar -xvzf ./ngrok-v3-stable-linux-amd64.tgz -C /usr/local/bin
           rm ngrok-v3-stable-linux-amd64.tgz
-          echo "ngrok installed successfully!"
 
       - name: Configure ngrok Token
         run: |
@@ -32,23 +30,28 @@ jobs:
 
       - name: Create and Start Android Emulator
         run: |
-          # অ্যান্ড্রয়েড সিস্টেম ইমেজ ডাউনলোড ও সেটআপ (Android 13)
           echo "y" | sdkmanager --install "system-images;android-33;google_apis;x86_64"
           echo "no" | avdmanager create avd -n AndroidCloud -k "system-images;android-33;google_apis;x86_64" --force
-          
-          # এমুলেটর ব্যাকগ্রাউন্ডে চালু করা (ডিসপ্লে ছাড়া)
           $ANDROID_HOME/emulator/emulator -avd AndroidCloud -no-window -no-audio -no-boot-anim -accel on -gpu off > /dev/null 2>&1 &
           echo "Android Emulator is booting up..."
 
-      - name: Start Safe ADB Tunnel
+      - name: Setup Web-scrcpy Server (For Mobile Browser Touch)
         run: |
-          # ADB পোর্ট ৫৫৫৫ টানেল করা (এশিয়া প্যাসিফিক রিজিয়ন)
-          ngrok tcp --region ap 5555 > /dev/null 2>&1 &
+          # ব্রাউজার ইন্টারফেসের জন্য ws-scrcpy ইনস্টল ও চালু করা
+          sudo npm install -g ws-scrcpy --unsafe-perm=true --allow-root
+          # ব্যাকগ্রাউন্ডে সার্ভিস রান করা (পোর্ট ৮০০০ এ)
+          ws-scrcpy > /dev/null 2>&1 &
+          sleep 10
+
+      - name: Start Safe HTTP Tunnel for Mobile
+        run: |
+          # পোর্ট ৮০০০ কে Ngrok এর মাধ্যমে পাবলিক ওয়েবসাইট লিঙ্কে রূপান্তর করা
+          ngrok http 8000 > /dev/null 2>&1 &
           
           echo "=========================================================="
-          echo "Android Cloud Server Started Successfully!"
-          echo "Please check your Ngrok Dashboard to get the ADB IP and Port."
+          echo "Android Web Server Started Successfully!"
+          echo "Open your Ngrok Dashboard, copy the HTTP URL and open it in your Mobile Chrome Browser."
           echo "=========================================================="
           
-          # সেশনটি ৬ ঘণ্টা সচল রাখবে
+          # সেশনটি ৬ ঘণ্টা সচল থাকবে
           sleep 21600 
