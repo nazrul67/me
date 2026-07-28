@@ -8,10 +8,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Enable Hardware Acceleration (KVM)
+      - name: Enable Hardware Acceleration (KVM) and GUI Setup
         run: |
           sudo apt-get update
           sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils nodejs npm
+          # ভার্চুয়াল ডিসপ্লে ইন্টারফেস (Xvfb, Openbox এবং x11vnc) ইনস্টল করা
+          sudo apt-get install -y xvfb openbox x11vnc
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
 
@@ -20,7 +22,6 @@ jobs:
 
       - name: Install ngrok via NPM
         run: |
-          # কোনো এক্সটার্নাল লিংক ছাড়াই npm এর মাধ্যমে অফিশিয়াল ngrok ইনস্টল করা
           sudo npm install -g ngrok --unsafe-perm=true --allow-root
           echo "ngrok installed successfully!"
 
@@ -28,28 +29,43 @@ jobs:
         run: |
           ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
 
-      - name: Create and Start Android Emulator
+      - name: Create and Start Android Emulator (With Visual Display)
         run: |
           echo "y" | sdkmanager --install "system-images;android-33;google_apis;x86_64"
           echo "no" | avdmanager create avd -n AndroidCloud -k "system-images;android-33;google_apis;x86_64" --force
-          $ANDROID_HOME/emulator/emulator -avd AndroidCloud -no-window -no-audio -no-boot-anim -accel on -gpu off > /dev/null 2>&1 &
-          echo "Android Emulator is booting up..."
+          
+          # ভার্চুয়াল ডিসপ্লে স্ক্রিন চালু করা
+          Xvfb :1 -screen 0 1080x1920x24 > /dev/null 2>&1 &
+          export DISPLAY=:1
+          sleep 3
+          
+          # অ্যান্ড্রয়েড এমুলেটরটি ভিজুয়াল মোডে চালু করা
+          $ANDROID_HOME/emulator/emulator -avd AndroidCloud -no-audio -no-boot-anim -accel on -gpu swiftshader_indirect > /dev/null 2>&1 &
+          echo "Android Emulator is booting in background display..."
+          sleep 10
 
-      - name: Setup Web-scrcpy Server (For Mobile Browser Touch)
+      - name: Setup Web Display Server (noVNC for Mobile Touch)
         run: |
-          # ব্রাউজার ইন্টারফেসের জন্য ws-scrcpy ইনস্টল ও ব্যাকগ্রাউন্ডে চালু করা
-          sudo npm install -g ws-scrcpy --unsafe-perm=true --allow-root
-          ws-scrcpy > /dev/null 2>&1 &
-          sleep 15
+          export DISPLAY=:1
+          # ব্যাকগ্রাউন্ডে VNC সার্ভার চালু করা (পোর্ট ৫৯০০)
+          x11vnc -display :1 -forever -shared -bg -nopw -rfbport 5900 > /dev/null 2>&1 &
+          sleep 5
+          
+          # নো-ভিএনসি (noVNC) ডাউনলোড এবং কনফিগার করা যা ব্রাউজারে টাচ সাপোর্ট দেয়
+          git clone https://github.com /tmp/novnc
+          # নোভিএনসি সার্ভারটি পোর্ট ৬০৮০ তে ব্যাকগ্রাউন্ডে চালু করা
+          /tmp/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 6080 > /dev/null 2>&1 &
+          sleep 5
 
-      - name: Start Safe HTTP Tunnel for Mobile
+      - name: Start Safe HTTP Tunnel for Mobile Chrome
         run: |
-          # পোর্ট ৮০০০ কে Ngrok এর মাধ্যমে পাবলিক ওয়েবসাইট লিঙ্কে রূপান্তর করা
-          ngrok http 8000 > /dev/null 2>&1 &
+          # পোর্ট ৬০৮০ কে Ngrok এর মাধ্যমে পাবলিক ওয়েবসাইট লিঙ্কে রূপান্তর করা
+          ngrok http 6080 > /dev/null 2>&1 &
           
           echo "=========================================================="
           echo "Android Web Server Started Successfully!"
           echo "Open your Ngrok Dashboard, copy the HTTP URL and open it in your Mobile Chrome Browser."
+          echo "Once opened, click the 'Connect' button to see and touch the Android screen!"
           echo "=========================================================="
           
           # সেশনটি ৬ ঘণ্টা সচল রাখবে
