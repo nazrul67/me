@@ -1,34 +1,33 @@
-name: Free Windows 11 RDP
-on: workflow_dispatch
-
-jobs:
-  launch-windows:
-    runs-on: windows-latest
-    steps:
-      - name: Install ngrok via Chocolatey
+      - name: Start Safe RDP Tunnel & Get IP
         run: |
-          choco install ngrok -y
-
-      - name: Configure ngrok Token
-        run: |
-          ngrok config add-authtoken "${{ secrets.NGROK_AUTH_TOKEN }}"
-
-      - name: Enable Remote Desktop (RDP) Ports
-        run: |
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-
-      - name: Create Custom RDP User (uk)
-        shell: cmd
-        run: |
-          # ইউজারনেম 'uk' এবং পাসওয়ার্ড 'Uk@2026' অ্যাকাউন্ট তৈরি করা
-          net user uk Uk@2026 /add
-          net localgroup Administrators uk /add
-          net localgroup "Remote Desktop Users" uk /add
-
-      - name: Start Safe RDP Tunnel
-        run: |
-          Start-Process ngrok -ArgumentList "tcp 3389"
-          Write-Host "RDP Server Started Successfully with credentials uk/Uk@2026"
-          Start-Sleep -Seconds 21600 # সেশনটি ৬ ঘণ্টা সচল থাকবে
+          # ব্যাকগ্রাউন্ডে ngrok চালু করা
+          Start-Process ngrok -ArgumentList "tcp 3389" -WindowStyle Hidden
+          
+          # ngrok রেডি হওয়ার জন্য সর্বোচ্চ ১০ বার চেষ্টা করবে
+          $retryCount = 0
+          $ngrok_url = $null
+          
+          while ($null -eq $ngrok_url -and $retryCount -lt 10) {
+              Start-Sleep -Seconds 3
+              try {
+                  # সঠিক আইপি ১২৭.০.০.১ এবং পোর্ট ৪০৪০ ব্যবহার করা হয়েছে
+                  $response = Invoke-WebRequest -Uri "http://127.0.0" -UseBasicParsing -ErrorAction Stop
+                  $ngrok_url = ($response.Content | ConvertFrom-Json).tunnels.public_url
+              } catch {
+                  $retryCount++
+                  Write-Host "Waiting for ngrok to start... (Attempt $retryCount/10)"
+              }
+          }
+          
+          # ইউআরএল পাওয়া গেলে স্ক্রিনে সুন্দরভাবে প্রিন্ট করবে
+          if ($ngrok_url) {
+              $clean_url = $ngrok_url.Replace("tcp://", "")
+              Write-Host "=========================================" -ForegroundColor Green
+              Write-Host "RDP Address: $clean_url" -ForegroundColor Cyan
+              Write-Host "Username: uk" -ForegroundColor Cyan
+              Write-Host "Password: Uk@2026" -ForegroundColor Cyan
+              Write-Host "=========================================" -ForegroundColor Green
+          } else {
+              Write-Host "Error: ngrok টানেল তৈরি করতে পারেনি! আপনার Authtoken ঠিক আছে কি?" -ForegroundColor Red
+              exit 1
+          }
